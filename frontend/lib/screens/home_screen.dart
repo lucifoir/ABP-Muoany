@@ -4,6 +4,7 @@ import 'package:test1/widgets/bottom_nav_bar.dart';
 import 'package:test1/widgets/summary_card.dart';
 import 'package:test1/widgets/transaction_card.dart';
 import 'package:test1/models/transaction.dart';
+import 'package:test1/screens/analysis_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +31,17 @@ class _HomeScreenState extends State<HomeScreen> {
       date: DateTime.now(),
     ),
   ];
+
+  void _onNavItemTapped(int index) {
+    if (index == 0) {
+      // Home / Records - Tidak perlu navigasi, tetap di halaman ini
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AnalysisPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => _addNewTransaction(context),
         child: const Icon(Icons.add, size: 28),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onNavItemTapped, // Gunakan fungsi untuk navigasi
       ),
     );
   }
