@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:test1/screens/add_transaction_screen.dart';
-import 'package:test1/widgets/bottom_nav_bar.dart';
-import 'package:test1/widgets/summary_card.dart';
-import 'package:test1/widgets/transaction_card.dart';
-import 'package:test1/models/transaction.dart';
-import 'package:test1/screens/analysis_screen.dart';
+import 'package:frontend/screens/add_transaction_screen.dart';
+import 'package:frontend/widgets/bottom_nav_bar.dart';
+import 'package:frontend/widgets/summary_card.dart';
+import 'package:frontend/widgets/transaction_card.dart';
+import 'package:frontend/models/transaction.dart';
+import 'package:frontend/screens/analysis_screen.dart';
+import 'package:frontend/screens/budget_screen.dart';
+import 'package:frontend/screens/account_screen.dart';
+// import 'package:frontend/screens/account_screen.dart'; // Kalau sudah ada nanti
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+
   final List<Transaction> _transactions = [
     Transaction(
       id: '1',
@@ -34,11 +38,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onNavItemTapped(int index) {
     if (index == 0) {
-      // Home / Records - Tidak perlu navigasi, tetap di halaman ini
+      // Stay di HomeScreen
     } else if (index == 1) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const AnalysisPage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const BudgetScreen()),
+      );
+    } else if (index == 3) {
+      // Belum ada AccountScreen, kasih info dulu
+      Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AccountScreen()),
       );
     }
   }
@@ -76,11 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => _addNewTransaction(context),
         child: const Icon(Icons.add, size: 28),
       ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: _onNavItemTapped, // Gunakan fungsi untuk navigasi
+        onTap: _onNavItemTapped,
       ),
     );
   }
@@ -97,10 +111,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final newTransaction = await Navigator.push<Transaction>(
       context,
       MaterialPageRoute(
-        builder:
-            (_) => AddTransactionScreen(
-              onSave: (transaction) => _transactions.add(transaction),
-            ),
+        builder: (_) => AddTransactionScreen(
+          onSave: (transaction) => _transactions.add(transaction),
+        ),
       ),
     );
 
@@ -110,6 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showTransactionDetails(List<Transaction> transactions) {
-    // Implement transaction details view
+    // Implementasi nanti kalau mau lihat detail transaksi
   }
 }

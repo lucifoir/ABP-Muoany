@@ -15,17 +15,16 @@ class CustomBottomNavBar extends StatelessWidget {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
-      padding: EdgeInsets.zero,
       child: SizedBox(
         height: 60,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Jaga jarak antar item
           children: [
             _buildNavItem(context, Icons.receipt, 'Records', 0),
             _buildNavItem(context, Icons.analytics, 'Analysis', 1),
-            const SizedBox(width: 48), // Space for centered FAB
-            _buildNavItem(context, Icons.account_balance_wallet, 'Budget', 3),
-            _buildNavItem(context, Icons.person, 'Account', 4),
+            const SizedBox(width: 48), // Space untuk FAB di tengah
+            _buildNavItem(context, Icons.account_balance_wallet, 'Budget', 2),
+            _buildNavItem(context, Icons.person, 'Account', 3),
           ],
         ),
       ),
@@ -43,16 +42,18 @@ class CustomBottomNavBar extends StatelessWidget {
       onTap: () => onTap(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
             color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
           ),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],

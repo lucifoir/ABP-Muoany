@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:frontend/widgets/bottom_nav_bar.dart';
+import 'package:frontend/screens/budget_screen.dart'; 
+import 'package:frontend/screens/home_screen.dart'; 
+import 'package:frontend/screens/add_transaction_screen.dart'; // Import AddTransactionScreen
+import 'package:frontend/screens/account_screen.dart'; 
+
 
 class AnalysisPage extends StatefulWidget {
   const AnalysisPage({super.key});
@@ -26,12 +32,56 @@ class _AnalysisPageState extends State<AnalysisPage> {
     AnalysisData('Freelance', 2.5, 132000, Colors.orange),
   ];
 
+  int _currentIndex = 1; 
+
+  void _onNavItemTapped(int index) {
+    if (index == _currentIndex) return;
+
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AnalysisPage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const BudgetScreen()),
+      );
+    } else if (index == 3) {
+       Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AccountScreen()),
+      );
+    }
+  }
+
+  // Navigasi langsung ke AddTransactionScreen
+  void _addNewTransaction(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(
+          onSave: (transaction) {
+            // Menangani transaksi baru yang disimpan
+            // Bisa menambahkan transaksi ke data transaksi atau state yang ada
+            print('Transaction added: $transaction');
+            // Jika perlu, update data di sini untuk menampilkan transaksi baru
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentData =
-        _selectedAnalysis == AnalysisType.expenses
-            ? _expensesData
-            : _incomeData;
+    final currentData = _selectedAnalysis == AnalysisType.expenses
+        ? _expensesData
+        : _incomeData;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Financial Analysis')),
@@ -46,6 +96,17 @@ class _AnalysisPageState extends State<AnalysisPage> {
             _buildLegendList(currentData),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addNewTransaction(context), // Fungsi untuk menambahkan transaksi baru
+        child: const Icon(Icons.add, size: 28),
+        backgroundColor: Colors.blue,       
+        foregroundColor: Colors.deepPurple, 
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onNavItemTapped,
       ),
     );
   }
@@ -78,20 +139,19 @@ class _AnalysisPageState extends State<AnalysisPage> {
       height: 250,
       child: PieChart(
         PieChartData(
-          sections:
-              data.map((e) {
-                return PieChartSectionData(
-                  color: e.color,
-                  value: e.percentage,
-                  title: '${e.percentage.toStringAsFixed(1)}%',
-                  radius: 60,
-                  titleStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                );
-              }).toList(),
+          sections: data.map((e) {
+            return PieChartSectionData(
+              color: e.color,
+              value: e.percentage,
+              title: '${e.percentage.toStringAsFixed(1)}%',
+              radius: 60,
+              titleStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            );
+          }).toList(),
           sectionsSpace: 2,
           centerSpaceRadius: 40,
         ),

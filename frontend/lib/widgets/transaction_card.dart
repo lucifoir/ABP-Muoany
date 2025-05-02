@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:test1/models/transaction.dart'; // Assume this exists
+import 'package:frontend/models/transaction.dart'; // Assume this exists
 
 class TransactionCard extends StatelessWidget {
   final DateTime date; // Changed from String to DateTime

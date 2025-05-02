@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:test1/models/transaction.dart';
+import 'package:frontend/models/transaction.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Function(Transaction) onSave;

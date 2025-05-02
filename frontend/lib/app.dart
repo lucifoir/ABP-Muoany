@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/login_screen.dart'; // Tambahkan ini
 
 class MoneyTrackerApp extends StatelessWidget {
   const MoneyTrackerApp({super.key});
@@ -35,36 +35,17 @@ class MoneyTrackerApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      home: const LoginScreen(), // Ganti ini
       builder: (context, child) {
         return MediaQuery(
-          // Updated from textScaleFactor to textScaler
           data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(1.0), // Fixes deprecated warning
+            textScaler: TextScaler.linear(1.0),
           ),
           child: Scaffold(
-            body: SafeArea(
-              child: child!,
-            ),
+            body: SafeArea(child: child!),
           ),
         );
       },
     );
-  }
-}
-
-// Extension for navigation
-extension AppNavigation on BuildContext {
-  void navigateTo(Widget screen) {
-    Navigator.push(
-      this,
-      MaterialPageRoute(builder: (_) => screen),
-    );
-  }
-
-  void navigateBack() {
-    if (Navigator.canPop(this)) {
-      Navigator.pop(this);
-    }
   }
 }
