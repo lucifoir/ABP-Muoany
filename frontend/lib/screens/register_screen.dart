@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,27 +17,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _errorMessage;
 
-  void _register() {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+void _register() async {
+  final name = _nameController.text.trim();
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      setState(() {
-        _errorMessage = 'All required fields';
-      });
-    } else {
-      // Simulasi proses pendaftaran sukses
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration is successful! Please log in.')),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
+  if (name.isEmpty || email.isEmpty || password.isEmpty) {
+    setState(() => _errorMessage = 'All fields are required');
+    return;
   }
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:5000/api/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'name': name,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful!')),
+      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+    } else {
+      final errorData = jsonDecode(response.body);
+      setState(() => _errorMessage = errorData['message'] ?? 'Registration failed');
+    }
+  } catch (e) {
+    setState(() => _errorMessage = 'Network error: $e');
+  }
+}
 
   @override
   Widget build(BuildContext context) {
