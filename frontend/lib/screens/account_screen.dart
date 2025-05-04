@@ -29,10 +29,10 @@ class _AccountScreenState extends State<AccountScreen> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AnalysisPage()));
         break;
       case 2:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AddBudgetScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BudgetScreen()));
         break;
       case 3:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BudgetScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AccountScreen()));
         break;
     }
   }
