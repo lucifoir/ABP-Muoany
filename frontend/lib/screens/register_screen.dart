@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/auth_service.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -15,25 +16,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _errorMessage;
 
-  void _register() {
+  void _register() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'All required fields';
+        _errorMessage = 'All fields are required';
       });
     } else {
-      // Simulasi proses pendaftaran sukses
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration is successful! Please log in.')),
-      );
+      final success = await AuthService.register(name, email, password);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      if (success) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please log in.'),
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to register. Email might already be taken.';
+        });
+      }
     }
   }
 
@@ -48,7 +58,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: ListView(
           children: [
             const SizedBox(height: 64),
-            Text("Buat Akun", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor)),
+            Text(
+              "Buat Akun",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+              ),
+            ),
             const SizedBox(height: 32),
             TextField(
               controller: _nameController,
@@ -76,7 +93,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 backgroundColor: primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: const Text('Regist', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Regist',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
             const SizedBox(height: 16),
             TextButton(

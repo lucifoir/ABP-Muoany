@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:frontend/widgets/bottom_nav_bar.dart';
 import 'package:frontend/screens/add_budget_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
-import 'package:frontend/screens/analysis_screen.dart'; 
-import 'package:frontend/screens/account_screen.dart'; 
+import 'package:frontend/screens/analysis_screen.dart';
+import 'package:frontend/screens/account_screen.dart';
+import 'package:frontend/services/budget_service.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -13,7 +14,28 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  int _currentIndex = 2; // BudgetScreen index di BottomNavBar
+  int _currentIndex = 2;
+  bool _isLoading = true;
+  List budgets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBudgets();
+  }
+
+  Future<void> _loadBudgets() async {
+    try {
+      final data = await BudgetService.fetchBudgets();
+      setState(() {
+        budgets = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error loading budgets: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _onTap(int index) {
     if (index == _currentIndex) return;
@@ -34,63 +56,88 @@ class _BudgetScreenState extends State<BudgetScreen> {
         MaterialPageRoute(builder: (context) => const BudgetScreen()),
       );
     } else if (index == 3) {
-       Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const AccountScreen()),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AccountScreen()),
       );
     }
+  }
+
+  void _confirmDelete(BuildContext context, String categoryName) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Budget'),
+            content: const Text('Are you sure you want to delete this budget?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final success = await BudgetService.deleteBudget(
+                    categoryName,
+                  );
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Budget deleted')),
+                    );
+                    _loadBudgets(); // refresh data
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to delete budget')),
+                    );
+                  }
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Budgets'),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
-          _buildBudgetCard(
-            icon: Icons.shopping_bag,
-            title: 'Clothing',
-            limit: 200.0,
-            spent: 145.55,
-            color: Colors.orange,
-          ),
-          const SizedBox(height: 16),
-          _buildBudgetCard(
-            icon: Icons.movie,
-            title: 'Entertainment',
-            limit: 120.0,
-            spent: 130.15,
-            color: Colors.purple,
-            isOverLimit: true,
-          ),
-          const SizedBox(height: 16),
-          _buildBudgetCard(
-            icon: Icons.fastfood,
-            title: 'Snacks',
-            limit: 400.0,
-            spent: 370.25,
-            color: Colors.redAccent,
-          ),
-          const SizedBox(height: 32),
-          _buildNotBudgetedSection(context),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Budgets'), centerTitle: true),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 24),
+                  ...budgets.map(
+                    (b) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildBudgetCard(
+                        icon: Icons.category,
+                        title: b['category_name'],
+                        limit: double.parse(b['limit_amount'].toString()),
+                        spent: double.parse(b['spent_amount'].toString()),
+                        color: Colors.purple,
+                        isOverLimit:
+                            double.parse(b['spent_amount'].toString()) >
+                            double.parse(b['limit_amount'].toString()),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddBudgetScreen()),
-          );
+          ).then((_) => _loadBudgets());
         },
         child: const Icon(Icons.add),
-        backgroundColor: const Color.fromARGB(255, 11, 159, 228), // Biru muda (kotak FAB)
-        foregroundColor: Colors.deepPurple, // Ungu tua (ikon plus)
+        backgroundColor: const Color.fromARGB(255, 11, 159, 228),
+        foregroundColor: Colors.deepPurple,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavBar(
@@ -101,27 +148,45 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Widget _buildHeader() {
+    final total = budgets.fold(
+      0.0,
+      (sum, b) => sum + double.parse(b['limit_amount'].toString()),
+    );
+    final spent = budgets.fold(
+      0.0,
+      (sum, b) => sum + double.parse(b['spent_amount'].toString()),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
-      children: const [
+      children: [
         Text(
-          'January, 2021',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          'May, 2025',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Column(
               children: [
-                Text('TOTAL BUDGET', style: TextStyle(color: Colors.grey)),
-                Text('\$720.00', style: TextStyle(color: Colors.green)),
+                const Text(
+                  'TOTAL BUDGET',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                Text(
+                  'Rp${total.toStringAsFixed(0)}',
+                  style: const TextStyle(color: Colors.green),
+                ),
               ],
             ),
             Column(
               children: [
-                Text('TOTAL SPENT', style: TextStyle(color: Colors.grey)),
-                Text('\$645.95', style: TextStyle(color: Colors.red)),
+                const Text('TOTAL SPENT', style: TextStyle(color: Colors.grey)),
+                Text(
+                  'Rp${spent.toStringAsFixed(0)}',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ],
             ),
           ],
@@ -157,28 +222,36 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      )),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                const Icon(Icons.more_vert),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed:
+                      () => _confirmDelete(
+                        context,
+                        title,
+                      ), // title di sini adalah categoryName
+                ),
               ],
             ),
+
             const SizedBox(height: 12),
             Text(
-              'Limit: \$${limit.toStringAsFixed(2)}',
+              'Limit: Rp${limit.toStringAsFixed(0)}',
               style: const TextStyle(color: Colors.grey),
             ),
             Text(
-              'Spent: \$${spent.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: isOverLimit ? Colors.red : Colors.black,
-              ),
+              'Spent: Rp${spent.toStringAsFixed(0)}',
+              style: TextStyle(color: isOverLimit ? Colors.red : Colors.black),
             ),
             Text(
-              'Remaining: \$${remaining < 0 ? 0 : remaining.toStringAsFixed(2)}',
+              'Remaining: Rp${remaining < 0 ? 0 : remaining.toStringAsFixed(0)}',
               style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 8),
@@ -186,7 +259,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
               value: percent,
               backgroundColor: Colors.grey.shade300,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  isOverLimit ? Colors.red : Colors.green),
+                isOverLimit ? Colors.red : Colors.green,
+              ),
               minHeight: 8,
               borderRadius: BorderRadius.circular(8),
             ),
@@ -201,41 +275,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildNotBudgetedSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Not budgeted this month',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          elevation: 2,
-          child: ListTile(
-            leading: const Icon(Icons.receipt_long),
-            title: const Text('Bills'),
-            trailing: TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AddBudgetScreen()),
-                );
-              },
-              child: const Text(
-                'SET BUDGET',
-                style: TextStyle(color: Colors.green),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

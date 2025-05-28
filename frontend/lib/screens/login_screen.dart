@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/auth_service.dart';
 import 'home_screen.dart';
-import 'register_screen.dart'; 
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,12 +15,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   String? _errorMessage;
 
-  void _login() {
+  void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Simulasi validasi login sederhana
-    if (email == "user@email.com" && password == "123456") {
+    final success = await AuthService.login(email, password);
+
+    if (success) {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -36,7 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigasi ke halaman register')),
     );
-    Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RegisterScreen()),
+    );
   }
 
   @override
@@ -52,7 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text(
               "Money Tracker",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+              ),
             ),
             const SizedBox(height: 32),
             TextField(
@@ -74,14 +84,20 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
               ),
               child: const Text('Login', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: _goToRegister,
-              child: Text('Belum punya akun? Daftar', style: TextStyle(color: primaryColor)),
+              child: Text(
+                'Belum punya akun? Daftar',
+                style: TextStyle(color: primaryColor),
+              ),
             ),
           ],
         ),

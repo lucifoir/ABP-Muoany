@@ -15,6 +15,8 @@ def predict():
     data = request.get_json()
     
     title = data.get('title')
+    print(f"Received title: {title}")
+    print("pantek")
     if not title:
         return jsonify({"error": "Title is required"}), 400
     

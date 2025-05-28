@@ -9,11 +9,13 @@ app.use(cors());
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
 const recordRoutes = require('./routes/recordRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
 // const categoryRoutes = require('./routes/categoryRoutes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/records', recordRoutes);
+app.use('/api/budgets', budgetRoutes);
 // app.use('/api/categories', categoryRoutes);
 
 const PORT = process.env.PORT || 5000;

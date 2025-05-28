@@ -3,7 +3,8 @@ import 'package:frontend/widgets/bottom_nav_bar.dart'; // Jangan lupa impor Cust
 import 'analysis_screen.dart'; // Impor AnalysisPage untuk navigasi
 import 'budget_screen.dart'; // Impor BudgetScreen untuk navigasi
 import 'home_screen.dart'; // Impor HomeScreen untuk navigasi
-import 'package:frontend/screens/account_screen.dart'; 
+import 'package:frontend/screens/account_screen.dart';
+import 'package:frontend/services/budget_service.dart';
 
 class AddBudgetScreen extends StatefulWidget {
   const AddBudgetScreen({super.key});
@@ -37,7 +38,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   String? selectedCategory;
   final TextEditingController amountController = TextEditingController();
   String selectedType = 'Expense'; // Default to Expense
-  int _currentIndex = 2; // Untuk menandakan bahwa Add Budget screen dipilih pada BottomNavBar
+  int _currentIndex =
+      2; // Untuk menandakan bahwa Add Budget screen dipilih pada BottomNavBar
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +55,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         centerTitle: true,
         title: const Text(
           'Add Budget',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
@@ -66,10 +65,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             },
             child: const Text(
               'SAVE',
-              style: TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -78,87 +74,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Single box for Expense and Income with divider in between
-            Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedType = 'Expense';
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selectedType == 'Expense'
-                              ? Colors.purple.shade200
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(30),
-                            bottomLeft: Radius.circular(30),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Expense',
-                            style: TextStyle(
-                              color: selectedType == 'Expense'
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 50,
-                    color: Colors.grey.shade300,
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedType = 'Income';
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selectedType == 'Income'
-                              ? Colors.purple.shade200
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(30),
-                            bottomRight: Radius.circular(30),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Income',
-                            style: TextStyle(
-                              color: selectedType == 'Income'
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
             _buildDropdown(
               hint: 'Category',
               value: selectedCategory,
@@ -174,6 +89,52 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
               controller: amountController,
               hintText: 'Amount',
               keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade200,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                onPressed: () async {
+                  if (selectedCategory == null ||
+                      amountController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Please fill all fields")),
+                    );
+                    return;
+                  }
+
+                  final success = await BudgetService.upsertBudget(
+                    categoryName: selectedCategory!,
+                    limitAmount: double.tryParse(amountController.text) ?? 0,
+                  );
+
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("✅ Budget saved successfully"),
+                      ),
+                    );
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("❌ Failed to save budget")),
+                    );
+                  }
+                },
+
+                child: const Text(
+                  'Submit',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ],
         ),
@@ -227,11 +188,15 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         decoration: InputDecoration(
           hintText: hint,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
-        items: items.map((item) {
-          return DropdownMenuItem<String>(value: item, child: Text(item));
-        }).toList(),
+        items:
+            items.map((item) {
+              return DropdownMenuItem<String>(value: item, child: Text(item));
+            }).toList(),
         onChanged: onChanged,
       ),
     );
@@ -254,7 +219,10 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         decoration: InputDecoration(
           hintText: hintText,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );

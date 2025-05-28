@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/transaction.dart';
+import 'package:frontend/services/transaction_service.dart';
+
+enum TransactionType { income, expense }
 
 class AddTransactionScreen extends StatefulWidget {
-  final Function(Transaction) onSave;
-
-  const AddTransactionScreen({super.key, required this.onSave});
+  const AddTransactionScreen({super.key});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -13,14 +14,15 @@ class AddTransactionScreen extends StatefulWidget {
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _categoryController = TextEditingController();
+  final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   TransactionType _transactionType = TransactionType.expense;
   DateTime _selectedDate = DateTime.now();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
-    _categoryController.dispose();
+    _titleController.dispose();
     _amountController.dispose();
     super.dispose();
   }
@@ -37,7 +39,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         title: const Text('Add Transaction'),
         actions: [
           TextButton(
-            onPressed: _submitForm,
+            onPressed: _isSubmitting ? null : _submitForm,
             child: const Text('SAVE', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -59,14 +61,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 _buildTypeSelector(),
                 const SizedBox(height: 24),
                 TextFormField(
-                  controller: _categoryController,
+                  controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Category',
+                    labelText: 'Judul Transaksi',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a category';
+                      return 'Masukkan judul transaksi';
                     }
                     return null;
                   },
@@ -75,23 +77,40 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 TextFormField(
                   controller: _amountController,
                   decoration: const InputDecoration(
-                    labelText: 'Amount',
+                    labelText: 'Nominal',
                     prefixText: 'Rp ',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter an amount';
+                      return 'Masukkan nominal';
                     }
                     if (double.tryParse(value) == null) {
-                      return 'Please enter a valid number';
+                      return 'Masukkan angka yang valid';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
                 _buildDateSelector(),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _submitForm,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Submit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple.shade200,
+                      foregroundColor: Colors.white, // warna teks & ikon
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -126,7 +145,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildDateSelector() {
     return ListTile(
       leading: const Icon(Icons.calendar_today),
-      title: const Text('Date'),
+      title: const Text('Tanggal'),
       subtitle: Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
       trailing: const Icon(Icons.arrow_forward_ios),
       onTap: () async {
@@ -143,22 +162,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final newTransaction = Transaction(
-        id: DateTime.now().toString(),
-        category: _categoryController.text,
-        amount:
-            double.parse(_amountController.text) *
-            (_transactionType == TransactionType.income ? 1 : -1),
-        date: _selectedDate,
-        isIncome: _transactionType == TransactionType.income,
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final newTransaction = await TransactionService.addTransaction(
+        title: _titleController.text,
+        type: _transactionType == TransactionType.income ? 'income' : 'expense',
+        amount: double.parse(_amountController.text),
+        description: _titleController.text,
+        transactionDate: _selectedDate,
       );
 
-      widget.onSave(newTransaction);
-      Navigator.pop(context);
+      if (newTransaction != null) {
+        Navigator.pop(context, newTransaction);
+      } else {
+        _showError('Gagal menambahkan transaksi');
+      }
+    } catch (e) {
+      _showError('Terjadi kesalahan: $e');
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
-}
 
-enum TransactionType { income, expense }
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
