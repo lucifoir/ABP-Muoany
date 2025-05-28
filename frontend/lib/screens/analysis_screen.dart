@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:frontend/widgets/bottom_nav_bar.dart';
-import 'package:frontend/screens/budget_screen.dart'; 
-import 'package:frontend/screens/home_screen.dart'; 
-import 'package:frontend/screens/add_transaction_screen.dart'; // Import AddTransactionScreen
-import 'package:frontend/screens/account_screen.dart'; 
-
+import 'package:frontend/screens/budget_screen.dart';
+import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/screens/add_transaction_screen.dart';
+import 'package:frontend/screens/account_screen.dart';
+import 'package:frontend/models/transaction.dart';
+import 'package:frontend/services/transaction_service.dart';
+import 'dart:math';
 
 class AnalysisPage extends StatefulWidget {
   const AnalysisPage({super.key});
@@ -16,27 +18,31 @@ class AnalysisPage extends StatefulWidget {
 
 class _AnalysisPageState extends State<AnalysisPage> {
   AnalysisType _selectedAnalysis = AnalysisType.expenses;
+  int _currentIndex = 1;
+  List<Transaction> _transactions = [];
+  bool _isLoading = true;
 
-  final List<AnalysisData> _expensesData = [
-    AnalysisData('Home', 58.73, 1490000, Colors.blue),
-    AnalysisData('Food', 18.30, 465000, Colors.green),
-    AnalysisData('Electronics', 10.09, 256000, Colors.orange),
-    AnalysisData('Transportation', 7.74, 196000, Colors.red),
-    AnalysisData('Entertainment', 2.69, 68000, Colors.purple),
-    AnalysisData('Donations', 2.42, 61000, Colors.brown),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
 
-  final List<AnalysisData> _incomeData = [
-    AnalysisData('Salary', 85.0, 4500000, Colors.green),
-    AnalysisData('Investments', 12.5, 662000, Colors.blueAccent),
-    AnalysisData('Freelance', 2.5, 132000, Colors.orange),
-  ];
-
-  int _currentIndex = 1; 
+  Future<void> _loadTransactions() async {
+    try {
+      final fetched = await TransactionService.fetchTransactions();
+      setState(() {
+        _transactions = fetched;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Failed to fetch transactions: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _onNavItemTapped(int index) {
     if (index == _currentIndex) return;
-
     if (index == 0) {
       Navigator.pushReplacement(
         context,
@@ -53,55 +59,76 @@ class _AnalysisPageState extends State<AnalysisPage> {
         MaterialPageRoute(builder: (context) => const BudgetScreen()),
       );
     } else if (index == 3) {
-       Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const AccountScreen()),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AccountScreen()),
       );
     }
   }
 
-  // Navigasi langsung ke AddTransactionScreen
-  void _addNewTransaction(BuildContext context) {
-    Navigator.push(
+  void _addNewTransaction(BuildContext context) async {
+    final newTransaction = await Navigator.push<Transaction>(
       context,
-      MaterialPageRoute(
-        builder: (_) => AddTransactionScreen(
-          onSave: (transaction) {
-            // Menangani transaksi baru yang disimpan
-            // Bisa menambahkan transaksi ke data transaksi atau state yang ada
-            print('Transaction added: $transaction');
-            // Jika perlu, update data di sini untuk menampilkan transaksi baru
-          },
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
     );
+
+    if (newTransaction != null) {
+      print('Transaction added: ${newTransaction.toJson()}');
+      _loadTransactions();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentData = _selectedAnalysis == AnalysisType.expenses
-        ? _expensesData
-        : _incomeData;
+    final filtered =
+        _transactions
+            .where(
+              (t) => t.isIncome == (_selectedAnalysis == AnalysisType.income),
+            )
+            .toList();
+    final Map<String, double> totals = {};
+    final Map<String, double> rawAmounts = {};
+
+    for (final t in filtered) {
+      final key = t.categoryName ?? t.category;
+      totals[key] = (totals[key] ?? 0) + t.amount;
+    }
+
+    final totalAmount = totals.values.fold(0.0, (a, b) => a + b);
+    final data =
+        totals.entries.map((entry) {
+          final percent =
+              totalAmount == 0 ? 0.0 : (entry.value / totalAmount) * 100;
+          return AnalysisData(
+            entry.key,
+            percent,
+            entry.value,
+            _generateColor(entry.key),
+          );
+        }).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Financial Analysis')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildTypeSelector(),
-            const SizedBox(height: 20),
-            _buildPieChart(currentData),
-            const SizedBox(height: 20),
-            _buildLegendList(currentData),
-          ],
-        ),
-      ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildTypeSelector(),
+                    const SizedBox(height: 20),
+                    _buildPieChart(data),
+                    const SizedBox(height: 20),
+                    _buildLegendList(data),
+                  ],
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addNewTransaction(context), // Fungsi untuk menambahkan transaksi baru
+        onPressed: () => _addNewTransaction(context),
         child: const Icon(Icons.add, size: 28),
-        backgroundColor: Colors.blue,       
-        foregroundColor: Colors.deepPurple, 
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.deepPurple,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavBar(
@@ -139,19 +166,20 @@ class _AnalysisPageState extends State<AnalysisPage> {
       height: 250,
       child: PieChart(
         PieChartData(
-          sections: data.map((e) {
-            return PieChartSectionData(
-              color: e.color,
-              value: e.percentage,
-              title: '${e.percentage.toStringAsFixed(1)}%',
-              radius: 60,
-              titleStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            );
-          }).toList(),
+          sections:
+              data.map((e) {
+                return PieChartSectionData(
+                  color: e.color,
+                  value: e.percentage,
+                  title: '${e.percentage.toStringAsFixed(1)}%',
+                  radius: 60,
+                  titleStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                );
+              }).toList(),
           sectionsSpace: 2,
           centerSpaceRadius: 40,
         ),
@@ -185,6 +213,14 @@ class _AnalysisPageState extends State<AnalysisPage> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+
+  Color _generateColor(String seed) {
+    final hash = seed.codeUnits.fold(0, (p, c) => p + c);
+    final r = (hash * 37) % 255;
+    final g = (hash * 91) % 255;
+    final b = (hash * 53) % 255;
+    return Color.fromRGBO(r, g, b, 1);
   }
 }
 

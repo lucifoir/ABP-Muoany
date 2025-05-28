@@ -5,6 +5,7 @@ import 'package:frontend/screens/analysis_screen.dart';
 import 'package:frontend/screens/add_budget_screen.dart';
 import 'package:frontend/screens/budget_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -16,6 +17,17 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   int _currentIndex = 3;
 
+  String userName = '';
+  String userEmail = '';
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('name') ?? 'Unknown';
+      userEmail = prefs.getString('email') ?? 'unknown@email.com';
+    });
+  }
+
   void _onNavItemTapped(int index) {
     setState(() {
       _currentIndex = index;
@@ -23,16 +35,28 @@ class _AccountScreenState extends State<AccountScreen> {
 
     switch (index) {
       case 0:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
         break;
       case 1:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AnalysisPage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AnalysisPage()),
+        );
         break;
       case 2:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AddBudgetScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AddBudgetScreen()),
+        );
         break;
       case 3:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BudgetScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BudgetScreen()),
+        );
         break;
     }
   }
@@ -52,28 +76,37 @@ class _AccountScreenState extends State<AccountScreen> {
   void _showLogoutConfirmationDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout confirmation"),
-        content: const Text("Are you sure want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(), // Tutup dialog
-            child: const Text("No"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Logout confirmation"),
+            content: const Text("Are you sure want to logout?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(), // Tutup dialog
+                child: const Text("No"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Tutup dialog
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                    (route) => false, // Hapus semua halaman sebelumnya
+                  );
+                },
+                child: const Text("Yes"),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Tutup dialog
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false, // Hapus semua halaman sebelumnya
-              );
-            },
-            child: const Text("Yes"),
-          ),
-        ],
-      ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // panggil fungsi untuk mengambil data user
   }
 
   @override
@@ -88,10 +121,7 @@ class _AccountScreenState extends State<AccountScreen> {
         centerTitle: true,
         title: const Text(
           'Account',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
       body: Padding(
@@ -105,21 +135,36 @@ class _AccountScreenState extends State<AccountScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6)],
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.shade300, blurRadius: 6),
+                ],
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: primaryColor,
-                    child: const Icon(Icons.person, color: Colors.white, size: 30),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text("John Doe", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      Text("john.doe@email.com", style: TextStyle(color: Colors.grey)),
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text(
+                        userEmail,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ],
                   ),
                 ],
@@ -134,10 +179,15 @@ class _AccountScreenState extends State<AccountScreen> {
               child: ElevatedButton.icon(
                 onPressed: _showLogoutConfirmationDialog,
                 icon: const Icon(Icons.logout, color: Colors.white),
-                label: const Text("Logout", style: TextStyle(color: Colors.white)),
+                label: const Text(
+                  "Logout",
+                  style: TextStyle(color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
@@ -161,14 +211,17 @@ class _AccountScreenState extends State<AccountScreen> {
             Expanded(
               child: ListView.separated(
                 itemCount: financeTips.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder:
+                    (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 4)],
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey.shade200, blurRadius: 4),
+                      ],
                     ),
                     child: Text(
                       financeTips[index],

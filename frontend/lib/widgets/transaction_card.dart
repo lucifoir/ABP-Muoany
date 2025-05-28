@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:frontend/models/transaction.dart'; // Assume this exists
+import 'package:frontend/models/transaction.dart';
 
 class TransactionCard extends StatelessWidget {
-  final DateTime date; // Changed from String to DateTime
+  final DateTime date;
   final List<Transaction> transactions;
   final VoidCallback? onTap;
 
@@ -30,12 +30,11 @@ class TransactionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Header Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    DateFormat('dd MMM yyyy').format(date), // Formatted date
+                    DateFormat('dd MMM yyyy').format(date),
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: theme.primaryColor,
                       fontWeight: FontWeight.bold,
@@ -52,7 +51,6 @@ class TransactionCard extends StatelessWidget {
                 ],
               ),
               const Divider(height: 24, thickness: 1),
-              // Transaction List
               ...transactions
                   .map((t) => _buildTransactionRow(t, theme))
                   .toList(),
@@ -66,7 +64,6 @@ class TransactionCard extends StatelessWidget {
   (double income, double expense) _calculateTotals() {
     double income = 0;
     double expense = 0;
-
     for (final t in transactions) {
       if (t.isIncome) {
         income += t.amount;
@@ -74,7 +71,6 @@ class TransactionCard extends StatelessWidget {
         expense += t.amount.abs();
       }
     }
-
     return (income, expense);
   }
 
@@ -99,20 +95,35 @@ class TransactionCard extends StatelessWidget {
 
   Widget _buildTransactionRow(Transaction t, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(bottom: 12), // Add spacing between rows
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Text(
-              t.category,
-              style: theme.textTheme.bodyMedium,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.description ?? '-',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  t.categoryName ?? t.category,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    color: theme.textTheme.bodySmall!.color!.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            '${t.amount > 0 ? '+' : ''}${_formatCurrency(t.amount)}',
+            '${t.isIncome ? '+' : '-'}${_formatCurrency(t.amount)}',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: t.isIncome ? Colors.green : Colors.red,
               fontWeight: FontWeight.bold,
